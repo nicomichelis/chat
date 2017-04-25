@@ -23,11 +23,12 @@ public class ChatThread implements Runnable {
 			InputStream is = this.client.getInputStream();
 
 			//Canale input per mess dal client a Server
-			InputStreamReader reader = new InputStreamReader(is);
-			BufferedReader buffer = new BufferedReader(reader);
-			String line = buffer.readLine();
-			
-			
+			//InputStreamReader reader = new InputStreamReader(is);
+			ObjectInputStream ois = new ObjectInputStream(is);
+			//BufferedReader buffer = new BufferedReader(reader);
+			//String line = buffer.readLine();
+			ChatMessage msg = (ChatMessage)ois.readObject();
+			String line = msg.getMessage();
 			
 			//per ricevere strutture java :deserializzo
 			//vedi StudentDeserializer.java
@@ -39,22 +40,21 @@ public class ChatThread implements Runnable {
 			BufferedWriter outbuffer = new BufferedWriter(wr);
 			
 			while(line != null){
-				
 				if(line.equals("quit")){
 					this.client.close();
 					System.out.println("CONNECTION CLOSED BY CLIENT");
 					break;
 				}else{
-					ChatMessage msg = new ChatMessage("se1","re1",line);
 					System.out.println(msg.getTimestamp());
 					System.out.println(msg.getId());
+					System.out.println(msg.getMessage());
 					
 					//invia risposta al client
 					outbuffer.write("Message received ok");
 					outbuffer.newLine();
 					outbuffer.flush();
 				}
-				line = buffer.readLine();
+				msg = (ChatMessage)ois.readObject();
 			}
 		}catch(Exception e ){
 			System.out.println("ChatTread Exception:" + e.getMessage());

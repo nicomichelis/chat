@@ -1,8 +1,14 @@
 package server;
 
+import java.io.Serializable;
 import java.sql.Timestamp;
 
-public class ChatMessage {
+public class ChatMessage implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
 	private Timestamp timestamp;
 	private String sender;
 	private String receiver; // null if public
@@ -10,7 +16,7 @@ public class ChatMessage {
 	private int id;
 	
 	// Default constructor
-    ChatMessage() {
+    public ChatMessage() {
     	this.timestamp = new Timestamp(System.currentTimeMillis());
     	this.sender = "";
     	this.receiver = "";
@@ -18,7 +24,7 @@ public class ChatMessage {
     	this.id = -1;
     }
     
-    ChatMessage(String send, String rec, String msg) {
+    public ChatMessage(String send, String rec, String msg) {
     	this.timestamp = new Timestamp(System.currentTimeMillis());
     	this.sender = send;
     	this.receiver = rec;

@@ -8,6 +8,7 @@ public class ChatServer {
 	
 	public static void main(String[] args) {
 		try {
+			room = new ChatRoom();
 			System.out.println("SERVER STARTED");
 			ServerSocket server = new ServerSocket(port);
 			while(true){

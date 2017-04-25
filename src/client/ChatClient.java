@@ -10,16 +10,18 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+
+import server.ChatMessage;
 public class ChatClient {
 
 	private static int port = 4000;
 	
 	public static void main(String[] args) {
-		
-		String ipaddr = args[0];
+		String ipaddr;
+		if (args.length==0) ipaddr="127.0.0.1";
+			else ipaddr=args[0];
 		InetSocketAddress addr  = new InetSocketAddress(ipaddr, port);
 		Socket s = new Socket();
-	
 		try {
 			s.connect(addr);
 			InputStreamReader reader = new InputStreamReader(System.in);
@@ -28,8 +30,10 @@ public class ChatClient {
 			//++++COMUNICAZIONE BIDIREZIONALE++++
 			// canale output per mess da client vs server
 			OutputStream os = s.getOutputStream();
-			OutputStreamWriter wr = new OutputStreamWriter(os);
-			BufferedWriter outbuffer = new BufferedWriter(wr);
+			//OutputStreamWriter wr = new OutputStreamWriter(os);
+			//BufferedWriter outbuffer = new BufferedWriter(wr);
+			
+			ObjectOutputStream oos = new ObjectOutputStream(os);
 			
 			//per scrivere strutture java:serializzazione
 			//vedi StudentSerializer.java...
@@ -42,9 +46,12 @@ public class ChatClient {
 			
 			while(true){
 				String line = buffer.readLine();
-				outbuffer.write(line);
-				outbuffer.newLine();
-				outbuffer.flush();
+				ChatMessage msg = new ChatMessage("io",null,line);
+				oos.writeObject(msg);
+				oos.flush();
+				//outbuffer.write("line");
+				//outbuffer.newLine();
+				//outbuffer.flush();
 				if(line.equals("quit")){
 					break;
 				}
