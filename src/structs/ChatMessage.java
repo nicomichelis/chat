@@ -1,4 +1,4 @@
-package server;
+package structs;
 
 import java.io.Serializable;
 import java.sql.Timestamp;

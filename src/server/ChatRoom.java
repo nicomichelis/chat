@@ -3,6 +3,8 @@ package server;
 import java.util.ArrayList;
 import java.util.List;
 
+import structs.ChatMessage;
+
 public class ChatRoom {
 	private List<ChatMessage> messageList;
 	private int lastID;

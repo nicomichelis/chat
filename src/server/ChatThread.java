@@ -5,9 +5,13 @@ import java.io.BufferedWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
+
+import structs.ChatMessage;
+import structs.ChatRequest;
 
 public class ChatThread implements Runnable {
 
@@ -20,19 +24,31 @@ public class ChatThread implements Runnable {
 	@Override
 	public void run() {
 		try{
-			InputStream is = this.client.getInputStream();
-
-			//Canale input per mess dal client a Server
-			//InputStreamReader reader = new InputStreamReader(is);
-			ObjectInputStream ois = new ObjectInputStream(is);
-			//BufferedReader buffer = new BufferedReader(reader);
-			//String line = buffer.readLine();
+			ChatRequest resp;
+			do {
+				//Canale input per mess dal client a Server
+				InputStream is = this.client.getInputStream();
+				ObjectInputStream ois = new ObjectInputStream(is);
+				// Read object from input stream
+				ChatRequest Nick = (ChatRequest) ois.readObject();
+				
+				// TODO: Check for used nickname
+				
+				// TO REMOVE
+				System.out.println((String)Nick.getParam());
+				
+				// Generate response
+				resp = new ChatRequest(0);
+				// Send response to client if everything's ok
+				OutputStream os = this.client.getOutputStream();
+				ObjectOutputStream oos = new ObjectOutputStream(os);
+				oos.writeObject(resp);
+			} while (resp.getResponseCode()!=0);
+			
+			
+			/*
 			ChatMessage msg = (ChatMessage)ois.readObject();
 			String line = msg.getMessage();
-			
-			//per ricevere strutture java :deserializzo
-			//vedi StudentDeserializer.java
-			//ObjectInputStream ois = new ObjectInputStream(is);
 			
 			//Canale output per mess da Server al client
 			OutputStream os = this.client.getOutputStream();
@@ -55,7 +71,8 @@ public class ChatThread implements Runnable {
 					outbuffer.flush();
 				}
 				msg = (ChatMessage)ois.readObject();
-			}
+			
+			}*/
 		}catch(Exception e ){
 			System.out.println("ChatTread Exception:" + e.getMessage());
 			e.printStackTrace();
