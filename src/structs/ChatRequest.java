@@ -33,6 +33,11 @@ public class ChatRequest implements Serializable {
 		this.error = err;
 		this.param = par;
 	}
+	public ChatRequest(int res, String err) {
+		this();
+		this.responseCode = res;
+		this.error = err;
+	}
 	public ChatRequest(int res) {
 		this();
 		this.responseCode = res;

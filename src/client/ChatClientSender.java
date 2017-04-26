@@ -10,7 +10,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import structs.ChatRequest;
-public class ChatClient {
+public class ChatClientSender {
 
 	private static int port = 4000;
 	private static ChatRequest response;
@@ -54,6 +54,7 @@ public class ChatClient {
 				
 			} while(response.getResponseCode() != 0);
 			System.out.println((String)response.getParam());
+			
 			/*
 			boolean end = true;
 			while(end){
