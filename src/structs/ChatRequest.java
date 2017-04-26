@@ -20,6 +20,11 @@ public class ChatRequest implements Serializable {
 	}
 	
 	// To use from client to server
+	public ChatRequest(String req) {
+		this();
+		this.requestCode = req;
+	}
+	
 	public ChatRequest(String req, Object par) {
 		this();
 		this.requestCode = req;
