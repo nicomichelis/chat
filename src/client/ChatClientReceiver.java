@@ -1,6 +1,5 @@
 package client;
 
-//nella classe bin :   java client.ChatClient 127.0.0.1
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -53,7 +52,7 @@ public class ChatClientReceiver {
 					System.out.println(response.getError());
 				
 			} while(response.getResponseCode() != 0);
-			System.out.println((String)response.getParam());
+			System.out.println("Connesso");
 			
 			while (true) {
 			

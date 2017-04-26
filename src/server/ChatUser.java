@@ -18,6 +18,12 @@ public class ChatUser {
 		this.sender = false;
 	}
 	
+	public boolean isConnected() {
+		if (this.sender&&this.receiver)
+			return true;
+		return false;
+	}
+	
 	// Setters and Getters
 	public String getNickname() {
 		return nickname;

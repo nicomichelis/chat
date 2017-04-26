@@ -1,29 +1,102 @@
 package server;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.Socket;
-
-import structs.ChatMessage;
 import structs.ChatRequest;
 
 public class ChatThread implements Runnable {
-
 	private Socket client = null;
-
+	private boolean exit = false;
+	
 	public ChatThread (Socket client){
 		this.client = client;
 	}
-
+	
 	@Override
 	public void run() {
 		try{
+			while (!exit) {
+				// Input channel: Client to Server
+				InputStream is = this.client.getInputStream();
+				ObjectInputStream ois = new ObjectInputStream(is);
+				
+				// Read object from input stream
+				ChatRequest request = (ChatRequest) ois.readObject();
+				
+				// Output channel: Server to Client
+				OutputStream os = this.client.getOutputStream();
+				ObjectOutputStream oos = new ObjectOutputStream(os);
+				String nickname;
+				ChatRequest response;
+				switch (request.getRequestCode()) {
+				case "loginreceiver":
+					nickname = (String)request.getParam();
+					if (ChatServer.userList.get(nickname)!=null) {
+						// User is already present, check if receiver is already connected
+						ChatUser user = ChatServer.userList.get(nickname);
+						if (user.getReceiver()) {
+							// Receiver already connected
+							response = new ChatRequest(-1,"Error: receiver already connected");
+							System.out.println("a");
+						} else {
+							// Receiver not connected (but Sender is), connect it
+							user.setReceiver(true);
+							ChatServer.userList.put(nickname, user);
+							response = new ChatRequest(0);
+							System.out.println("b");
+						}
+					} else {
+						// User is not present
+						ChatUser user = new ChatUser(nickname);
+						user.setReceiver(true);
+						ChatServer.userList.put(nickname, user);
+						System.out.println("c");
+						response = new ChatRequest(0);
+					}
+					oos.writeObject(response);
+					oos.flush();
+					break;
+					
+				case "loginsender":
+					nickname = (String)request.getParam();
+					if (ChatServer.userList.get(nickname)!=null) {
+						// User is already present, check if sender is already connected
+						ChatUser user = ChatServer.userList.get(nickname);
+						if (user.getSender()) {
+							// Sender already connected
+							response = new ChatRequest(-1,"Error: sender already connected");
+							System.out.println("aa");
+						} else {
+							// Sender not connected (but Receiver is) connect it
+							user.setSender(true);
+							ChatServer.userList.put(nickname, user);
+							response = new ChatRequest(0);
+							System.out.println("bb");
+						}
+					} else {
+						// User is not present
+						ChatUser user = new ChatUser(nickname);
+						user.setSender(true);
+						ChatServer.userList.put(nickname, user);
+						System.out.println("cc");
+						response = new ChatRequest(0);
+					}
+					oos.writeObject(response);
+					oos.flush();
+					break;
+					
+				default:
+					response = new ChatRequest(-1, "Generic error");
+					oos.writeObject(response);
+					oos.flush();
+				}
+			}
+			
+			
+			/*
 			ChatRequest resp;
 			do {
 				//Canale input per mess dal client a Server
@@ -45,7 +118,7 @@ public class ChatThread implements Runnable {
 				oos.writeObject(resp);
 			} while (resp.getResponseCode()!=0);
 			
-			
+			*/
 			/*
 			ChatMessage msg = (ChatMessage)ois.readObject();
 			String line = msg.getMessage();

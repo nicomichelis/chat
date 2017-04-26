@@ -1,6 +1,5 @@
 package client;
 
-//nella classe bin :   java client.ChatClient 127.0.0.1
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -53,26 +52,11 @@ public class ChatClientSender {
 					System.out.println(response.getError());
 				
 			} while(response.getResponseCode() != 0);
-			System.out.println((String)response.getParam());
+			System.out.println("Connesso");
 			
-			/*
-			boolean end = true;
-			while(end){
-				String line = buffer.readLine();
-				switch (line) {
-				case "quit":
-					System.out.println("ye");
-					end = false;
-					break;
-				}
-				ChatMessage msg = new ChatMessage("io",null,line);
-				oos.writeObject(msg);
-				oos.flush();
-				
-				//String response = inbuffer.readLine();
-				//System.out.println("Server responde : " + response);
+			while (true) {
+			
 			}
-*/
 		}catch(Exception e){
 			e.printStackTrace();
 		}	
