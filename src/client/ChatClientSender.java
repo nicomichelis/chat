@@ -63,7 +63,6 @@ public class ChatClientSender {
 				String line = buffer.readLine();
 				if (line.startsWith("/")) {
 					// System command
-					System.out.println("System message!");
 					line = line.substring(1); // remove the /
 					switch (line.split(" ", 2)[0]) { // taking only the first word
 					case "quit":
@@ -94,7 +93,11 @@ public class ChatClientSender {
 					System.out.println("Private message!");
 				} else {
 					// Public message
-					System.out.println("Public message!");
+					req = new ChatRequest("publicmessage",line);
+					OutputStream os = s.getOutputStream();			
+					ObjectOutputStream oos = new ObjectOutputStream(os);
+					oos.writeObject(req);
+					oos.flush();
 				}
 			}
 			s.close();

@@ -72,5 +72,9 @@ public class ChatMessage implements Serializable {
 	public void setId(int id) {
 		this.id = id;
 	}
+	
+	public String print() {
+		return "["+this.timestamp+"] ["+ this.sender + "]: "+ this.message;
+	}
     
 }

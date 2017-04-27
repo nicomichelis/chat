@@ -5,6 +5,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+
+import structs.ChatMessage;
 import structs.ChatRequest;
 
 public class ChatThread implements Runnable {
@@ -102,6 +104,10 @@ public class ChatThread implements Runnable {
 					System.out.println("User "+nick+ " disconnected");
 					break;
 					
+				case "publicmessage":
+					ChatMessage msg = new ChatMessage(nick, null, (String)request.getParam());
+					ChatServer.room.addMessage(msg);
+					System.out.println(ChatServer.room.getLastMessage().print());
 				default:
 					response = new ChatRequest(-1, "Generic error");
 					oos.writeObject(response);

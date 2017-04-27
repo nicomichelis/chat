@@ -21,7 +21,12 @@ public class ChatRoom {
 		return this.lastID;
 	}
 	
-	public List<ChatMessage> listMessages(String chatUser, int lastMessage) {
+	public synchronized ChatMessage getLastMessage() {
+		return messageList.get(lastID);
+	}
+	
+	
+	public synchronized List<ChatMessage> listMessages(String chatUser, int lastMessage) {
 		ArrayList<ChatMessage> retMessages = new ArrayList<ChatMessage>();
 		if (lastMessage == -1) {
 			// Only last message should be displayed
