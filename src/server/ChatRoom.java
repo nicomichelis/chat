@@ -22,32 +22,20 @@ public class ChatRoom {
 	}
 	
 	public synchronized ChatMessage getLastMessage() {
-		return messageList.get(lastID);
+		if (lastID == -1) 
+			return null;
+		else return messageList.get(lastID);
 	}
 	
 	
 	public synchronized List<ChatMessage> listMessages(String chatUser, int lastMessage) {
 		ArrayList<ChatMessage> retMessages = new ArrayList<ChatMessage>();
-		if (lastMessage == -1) {
-			// Only last message should be displayed
-			for (int i = lastID; i > 0; i++) {
-				if (messageList.get(i).getReceiver() == null || messageList.get(i).getReceiver() == chatUser){
-					retMessages.add(messageList.get(i));
-					return retMessages;
-				}
+		for (int i = lastMessage + 1; i < messageList.size(); i++) {
+			if (messageList.get(i).getReceiver() == null || messageList.get(i).getReceiver().equals(chatUser)){
+				retMessages.add(messageList.get(i));
 			}
-			return null;
-		} else {
-			// lastMessage contains the ID of the last message displayed by the user
-			// all messages past that one should be displayed
-			// remember to check for private messages!
-			for (int i = lastID; i < messageList.size(); i++) {
-				if (messageList.get(i).getReceiver() == null || messageList.get(i).getReceiver() == chatUser){
-					retMessages.add(messageList.get(i));
-				}
-			}
-			return retMessages;
 		}
+		return retMessages;
 	}
 
 }

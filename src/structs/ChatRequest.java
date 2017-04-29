@@ -47,6 +47,11 @@ public class ChatRequest implements Serializable {
 		this();
 		this.responseCode = res;
 	}
+	public ChatRequest(int res, Object par) {
+		this();
+		this.responseCode = res;
+		this.param = par;
+	}
 
 	// Getters only
 	public String getRequestCode() {

@@ -5,6 +5,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 
 import structs.ChatMessage;
 import structs.ChatRequest;
@@ -12,7 +13,7 @@ import structs.ChatRequest;
 public class ChatThread implements Runnable {
 	private Socket client = null;
 	private boolean exit = false;
-	private String nick;
+	private String nick  = null;
 	
 	public ChatThread (Socket client){
 		this.client = client;
@@ -20,18 +21,21 @@ public class ChatThread implements Runnable {
 	
 	@Override
 	public void run() {
+		
 		try{
+			InputStream is = null;
+			ObjectInputStream ois = null;
+			OutputStream os = null;
+			ObjectOutputStream oos = null;
 			while (!exit) {
 				// Input channel: Client to Server
-				InputStream is = this.client.getInputStream();
-				ObjectInputStream ois = new ObjectInputStream(is);
+				is = this.client.getInputStream();
+				ois = new ObjectInputStream(is);
 				
 				// Read object from input stream
 				ChatRequest request = (ChatRequest) ois.readObject();
 				
-				// Output channel: Server to Client
-				OutputStream os = this.client.getOutputStream();
-				ObjectOutputStream oos = new ObjectOutputStream(os);
+				
 				String nickname;
 				ChatRequest response;
 				switch (request.getRequestCode()) {
@@ -60,6 +64,9 @@ public class ChatThread implements Runnable {
 						response = new ChatRequest(0);
 						System.out.println("User "+ nick + " receiver connected. Waiting for sender...");
 					}
+					// Output channel: Server to Client
+					os = this.client.getOutputStream();
+					oos = new ObjectOutputStream(os);
 					oos.writeObject(response);
 					oos.flush();
 					break;
@@ -89,6 +96,9 @@ public class ChatThread implements Runnable {
 						response = new ChatRequest(0);
 						System.out.println("User "+ nick + " sender connected. Waiting for receiver...");
 					}
+					// Output channel: Server to Client
+					os = this.client.getOutputStream();
+					oos = new ObjectOutputStream(os);
 					oos.writeObject(response);
 					oos.flush();
 					break;
@@ -96,25 +106,59 @@ public class ChatThread implements Runnable {
 				case "quit":
 					// Remove user from list
 					ChatServer.userList.remove(nick);
-					// Send client ok message
-					response = new ChatRequest(0);
-					oos.writeObject(response);
-					oos.flush();
 					exit = true;
 					System.out.println("User "+nick+ " disconnected");
 					break;
 					
 				case "publicmessage":
-					ChatMessage msg = new ChatMessage(nick, null, (String)request.getParam());
+					ChatMessage msg = (ChatMessage)request.getParam();
 					ChatServer.room.addMessage(msg);
 					System.out.println(ChatServer.room.getLastMessage().print());
+					break;
+					
+				case "privatemessage":
+					ChatMessage msgpriv = (ChatMessage)request.getParam();
+					ChatServer.room.addMessage(msgpriv);
+					System.out.println(ChatServer.room.getLastMessage().print());
+					break;
+					
+				case "getmessagesfrom":
+					int from = (int) request.getParam();
+					ArrayList<ChatMessage> list = (ArrayList<ChatMessage>) ChatServer.room.listMessages(nick, from);
+					response = new ChatRequest(0,list);
+					// Output channel: Server to Client
+					os = this.client.getOutputStream();
+					oos = new ObjectOutputStream(os);
+					oos.writeObject(response);
+					oos.flush();
+					break;
+					
+				case "list":
+					ArrayList<String> userlist = new ArrayList<String>();
+					for ( ChatUser user : ChatServer.userList.values() ) {
+					    if (user.isConnected()) {
+					    	userlist.add(user.getNickname());
+					    }
+					}
+					response = new ChatRequest(0,userlist);
+					// Output channel: Server to Client
+					os = this.client.getOutputStream();
+					oos = new ObjectOutputStream(os);
+					oos.writeObject(response);
+					oos.flush();
+					break;
+					
 				default:
 					response = new ChatRequest(-1, "Generic error");
+					// Output channel: Server to Client
+					os = this.client.getOutputStream();
+					oos = new ObjectOutputStream(os);
 					oos.writeObject(response);
 					oos.flush();
 				}
 			}
 		}catch(Exception e ){
+			ChatServer.userList.remove(nick);
 			System.out.println("ChatTread Exception:" + e.getMessage());
 			e.printStackTrace();
 		}

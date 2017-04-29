@@ -8,43 +8,54 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.ArrayList;
+
+import structs.ChatMessage;
 import structs.ChatRequest;
 public class ChatClientSender {
 
 	private static int port = 4000;
 	private static ChatRequest response;
-	private static boolean quit = false;
+	private static String nickname;
 	
 	public static void main(String[] args) {
+		boolean quit = false;
+		ChatRequest req = null;
 		String ipaddr;
 		if (args.length==0) ipaddr="127.0.0.1";
 			else ipaddr=args[0];
 		InetSocketAddress addr  = new InetSocketAddress(ipaddr, port);
-		
 		Socket s = new Socket();
 		
 		try {
 			s.connect(addr);
+			// Output channel: Client to Server
+			OutputStream os = null;			
+			ObjectOutputStream oos = null;
+			// Input channel: Server to Client
+			InputStream is = null;
+			ObjectInputStream iis = null;
+			// Login part
 			do {
-				// Output channel: Client to Server
-				OutputStream os = s.getOutputStream();			
-				ObjectOutputStream oos = new ObjectOutputStream(os);
-				
 				// Request for a nick
 				System.out.println("Insert Nickname: ");
 				// Keyboard Input
 				InputStreamReader reader = new InputStreamReader(System.in);
 				BufferedReader buffer = new BufferedReader(reader);	
-				String line = buffer.readLine();
+				nickname = buffer.readLine();
 				
+				// Write to server
+				os = s.getOutputStream();			
+				oos = new ObjectOutputStream(os);
 				// Request login
-				ChatRequest req = new ChatRequest("loginsender", line);
+				req = new ChatRequest("loginsender", nickname);
 				oos.writeObject(req);
 				oos.flush();
 				
+				// Wait for Server response
 				// Input channel: Server to Client
-				InputStream is = s.getInputStream();
-				ObjectInputStream iis = new ObjectInputStream(is);
+				is = s.getInputStream();
+				iis = new ObjectInputStream(is);
 				
 				// Server response
 				response = (ChatRequest)iis.readObject();
@@ -54,8 +65,8 @@ public class ChatClientSender {
 			} while(response.getResponseCode() != 0);
 			System.out.println("Connected to the Server");
 			
+			// Send requests to server
 			while (!quit) {
-				ChatRequest req;
 				System.out.println("Comando: ");
 				// Legge da tastiera
 				InputStreamReader reader = new InputStreamReader(System.in);
@@ -67,37 +78,61 @@ public class ChatClientSender {
 					switch (line.split(" ", 2)[0]) { // taking only the first word
 					case "quit":
 						req = new ChatRequest("quit");
-						OutputStream os = s.getOutputStream();			
-						ObjectOutputStream oos = new ObjectOutputStream(os);
+						os = s.getOutputStream();			
+						oos = new ObjectOutputStream(os);
 						oos.writeObject(req);
 						oos.flush();
-						// Wait for server response to quit
-						// Input channel: Server to Client
-						InputStream is = s.getInputStream();
-						ObjectInputStream iis = new ObjectInputStream(is);
-						// Server response
-						response = (ChatRequest)iis.readObject();
-						if (response.getResponseCode()!=0) {
-							System.out.println(response.getError());
-						}
 						System.out.println("Closing...");
 						// Quit anyway
 						quit=true;
 						break;
+					case "list":
+						os = s.getOutputStream();			
+						oos = new ObjectOutputStream(os);
+						req = new ChatRequest("list");
+						oos.writeObject(req);
+						oos.flush();
+						is = s.getInputStream();
+						iis = new ObjectInputStream(is);
+						req = (ChatRequest)iis.readObject();
+						if (req.getResponseCode()!=0) {
+							System.out.println(req.getError());
+						} else {
+							if (req.getResponseCode()==0) {
+								System.out.println("Active user list: ");
+								@SuppressWarnings("unchecked")
+								ArrayList<String> userlist = (ArrayList<String>) req.getParam();
+								for (String username:userlist) {
+									System.out.println("- "+username);
+								}
+							} else {
+								System.out.println(req.getError());
+							}
+						}
+						break;
 					default:
 						System.out.println("Command not recognized");	
 					}
-				} else
-				if (line.startsWith("@")) {
-					// Private message to someone
-					System.out.println("Private message!");
 				} else {
-					// Public message
-					req = new ChatRequest("publicmessage",line);
-					OutputStream os = s.getOutputStream();			
-					ObjectOutputStream oos = new ObjectOutputStream(os);
-					oos.writeObject(req);
-					oos.flush();
+					if (line.startsWith("@")) {
+						// Private message to someone
+						// the first thing after the @ is the nickname of the receiver
+						line = line.substring(1); // remove the @
+						ChatMessage message = new ChatMessage(nickname, line.split(" ", 2)[0], line.split(" ", 2)[1]);
+						req = new ChatRequest("privatemessage", message);
+						os = s.getOutputStream();			
+						oos = new ObjectOutputStream(os);
+						oos.writeObject(req);
+						oos.flush();
+					} else {
+						// Public message
+						ChatMessage message = new ChatMessage(nickname, null, line);
+						req = new ChatRequest("publicmessage", message);
+						os = s.getOutputStream();			
+						oos = new ObjectOutputStream(os);
+						oos.writeObject(req);
+						oos.flush();
+					}
 				}
 			}
 			s.close();

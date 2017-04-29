@@ -8,14 +8,18 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.ArrayList;
+
+import structs.ChatMessage;
 import structs.ChatRequest;
 public class ChatClientReceiver {
 
 	private static int port = 4000;
 	private static ChatRequest response;
-	private static boolean quit = false;
 	
 	public static void main(String[] args) {
+		int indexMessage = -1;
+		boolean quit = false;
 		String ipaddr;
 		if (args.length==0) ipaddr="127.0.0.1";
 			else ipaddr=args[0];
@@ -26,11 +30,13 @@ public class ChatClientReceiver {
 		
 		try {
 			s.connect(addr);
+			// Output channel: Client to Server
+			OutputStream os = s.getOutputStream();			
+			ObjectOutputStream oos = new ObjectOutputStream(os);
+			// Input channel: Server to Client
+			InputStream is = null;
+			ObjectInputStream iis = null;
 			do {
-				// Output channel: Client to Server
-				OutputStream os = s.getOutputStream();			
-				ObjectOutputStream oos = new ObjectOutputStream(os);
-				
 				// Request for a nick
 				System.out.println("Insert Nickname: ");
 				// Keyboard Input
@@ -43,9 +49,8 @@ public class ChatClientReceiver {
 				oos.writeObject(req);
 				oos.flush();
 				
-				// Input channel: Server to Client
-				InputStream is = s.getInputStream();
-				ObjectInputStream iis = new ObjectInputStream(is);
+				is = s.getInputStream();
+				iis = new ObjectInputStream(is);
 				
 				// Server response
 				response = (ChatRequest)iis.readObject();
@@ -56,17 +61,34 @@ public class ChatClientReceiver {
 			System.out.println("Connected to the Server");
 			
 			while (!quit) {
-				InputStream is = s.getInputStream();
-				ObjectInputStream iis = new ObjectInputStream(is);
+				Thread.sleep(1000);
+				// Check for new messages
+				// Output channel: Client to Server
+				os = s.getOutputStream();			
+				oos = new ObjectOutputStream(os);
+				ChatRequest req = new ChatRequest("getmessagesfrom", indexMessage);
+				oos.writeObject(req);
+				oos.flush();
+
+				// wait for server response
+				is = s.getInputStream();
+				iis = new ObjectInputStream(is);
 				// Server response
 				response = (ChatRequest)iis.readObject();
 				if (response.getResponseCode()==0) {
-					// just write what's written in the message
-					System.out.println((String)response.getParam());
+						@SuppressWarnings("unchecked")
+						ArrayList<ChatMessage> retMessages = (ArrayList<ChatMessage>) response.getParam();
+						for (ChatMessage msg:retMessages) {
+							indexMessage = msg.getId();
+							if (msg.getReceiver()!= null) 
+								System.out.println("@"+msg.print());
+							else
+								System.out.println(msg.print());
+						}
 				} else {
 					System.out.println((String)response.getParam());
-					OutputStream os = s.getOutputStream();			
-					ObjectOutputStream oos = new ObjectOutputStream(os);
+					os = s.getOutputStream();			
+					oos = new ObjectOutputStream(os);
 					oos.writeObject(new ChatRequest("quit"));
 					oos.flush();
 					// Wait for server response to quit
@@ -81,7 +103,6 @@ public class ChatClientReceiver {
 					System.out.println("Closing...");
 					// Quit anyway
 					quit=true;
-					
 				}
 			}
 		}catch(Exception e){
