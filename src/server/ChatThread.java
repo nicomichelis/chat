@@ -95,22 +95,35 @@ public class ChatThread implements Runnable {
 					break;
 					
 				case "quit":
+					// Remove user from list
+					ChatServer.userList.remove(nick);
+					System.out.println("User " + nick + " disconnected");
+					exit = true;
+					response = new ChatRequest(-1, "User disconnected");
+					break;
+					
+				case "quitsender":
 					if (ChatServer.userList.get(nick).isConnected()) {
-						if (clientStatus) { 
-							ChatServer.userList.get(nick).setSender(false);
-							System.out.println("User "+nick+ " sender disconnected");
-						} else {
-							ChatServer.userList.get(nick).setReceiver(false);
-							System.out.println("User "+nick+ " receiver disconnected");
-						}
+						ChatServer.userList.get(nick).setSender(false);
+						System.out.println("User " + nick + " sender disconnected");
 					} else {
-						// Remove user from list
 						ChatServer.userList.remove(nick);
-						System.out.println("User "+nick+ " disconnected");
+						System.out.println("User " + nick + " disconnected");
 					}
 					exit = true;
-					response = new ChatRequest(-1, "Bye");
+					response = new ChatRequest(-1, "sender disconnected");
 					break;
+					
+				case "quitreceiver":
+					if (ChatServer.userList.get(nick).isConnected()) {
+						ChatServer.userList.get(nick).setReceiver(false);
+						System.out.println("User " + nick + " receiver disconnected");
+						response = new ChatRequest(-1, "receiver disconnected");
+					} else {
+						response = new ChatRequest(-1, "receiver was not connected");
+					}
+					break;
+					
 				case "publicmessage":
 					if (!ChatServer.userList.get(nick).isConnected()) {
 						String client = clientStatus ? "receiver":"sender";
@@ -136,9 +149,20 @@ public class ChatThread implements Runnable {
 					break;
 					
 				case "getmessagesfrom":
-					if (!ChatServer.userList.get(nick).getReceiver()) {
+					if (ChatServer.userList.get(nick) == null) {
+						response = new ChatRequest(-1, "disconnected");
+						exit=true;
+						break;
+					}
+					if (!ChatServer.userList.get(nick).getSender()) {
 						// wait for sender connection
 						response = new ChatRequest(0);
+						break;
+					}
+					// if receiver is false, the receiver should quit
+					if (!ChatServer.userList.get(nick).getReceiver()) {
+						response = new ChatRequest(-1, "disconnected");
+						exit=true;
 						break;
 					}
 					int from = (int) request.getParam();

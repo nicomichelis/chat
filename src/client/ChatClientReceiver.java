@@ -78,6 +78,7 @@ public class ChatClientReceiver {
 				req = (ChatRequest)iis.readObject();
 				
 				if (req.getResponseCode()==0) {
+					// the server sent a list of messages
 					if (req.getParam()!=null) {
 						@SuppressWarnings("unchecked")
 						ArrayList<ChatMessage> retMessages = (ArrayList<ChatMessage>) req.getParam();
@@ -90,21 +91,8 @@ public class ChatClientReceiver {
 						}
 					}
 				} else {
-					System.out.println((String)req.getParam());
-					os = s.getOutputStream();			
-					oos = new ObjectOutputStream(os);
-					oos.writeObject(new ChatRequest("quit"));
-					oos.flush();
-					// Wait for server response to quit
-					// Input channel: Server to Client
-					is = s.getInputStream();
-					iis = new ObjectInputStream(is);
-					// Server response
-					req = (ChatRequest)iis.readObject();
-					if (req.getResponseCode()!=0) {
-						System.out.println(req.getError());
-					}
-					// Quit anyway
+					// server sent an error or a quit
+					System.out.println(req.getError());
 					quit=true;
 				}
 				Thread.sleep(1000);

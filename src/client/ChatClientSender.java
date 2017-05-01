@@ -76,6 +76,13 @@ public class ChatClientSender {
 						req = new ChatRequest("quit");
 						quit=true;
 						break;
+					case "quitsender":
+						req = new ChatRequest("quitsender");
+						quit=true;
+						break;
+					case "quitreceiver":
+						req = new ChatRequest("quitreceiver");
+						break;
 					case "list":
 						req = new ChatRequest("list");
 						break;
