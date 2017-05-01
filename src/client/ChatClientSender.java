@@ -87,7 +87,8 @@ public class ChatClientSender {
 						req = new ChatRequest("list");
 						break;
 					default:
-						System.out.println("Command not recognized");	
+						System.out.println("Command not recognized");
+						continue;
 					}
 				} else {
 					if (line.startsWith("@")) {
