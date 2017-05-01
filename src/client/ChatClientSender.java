@@ -21,20 +21,19 @@ public class ChatClientSender {
 	public static void main(String[] args) {
 		boolean quit = false;
 		ChatRequest req = null;
+		// Output channel: Client to Server
+		OutputStream os = null;			
+		ObjectOutputStream oos = null;
+		// Input channel: Server to Client
+		InputStream is = null;
+		ObjectInputStream iis = null;
 		String ipaddr;
-		if (args.length==0) ipaddr="127.0.0.1";
-			else ipaddr=args[0];
+		ipaddr = (args.length==0) ? "127.0.0.1" : args[0];
 		InetSocketAddress addr  = new InetSocketAddress(ipaddr, port);
 		Socket s = new Socket();
 		
 		try {
 			s.connect(addr);
-			// Output channel: Client to Server
-			OutputStream os = null;			
-			ObjectOutputStream oos = null;
-			// Input channel: Server to Client
-			InputStream is = null;
-			ObjectInputStream iis = null;
 			// Login part
 			do {
 				// Request for a nick
@@ -53,7 +52,6 @@ public class ChatClientSender {
 				oos.flush();
 				
 				// Wait for Server response
-				// Input channel: Server to Client
 				is = s.getInputStream();
 				iis = new ObjectInputStream(is);
 				
@@ -83,6 +81,9 @@ public class ChatClientSender {
 						oos.writeObject(req);
 						oos.flush();
 						System.out.println("Closing...");
+						is = s.getInputStream();
+						iis = new ObjectInputStream(is);
+						req = (ChatRequest)iis.readObject();
 						// Quit anyway
 						quit=true;
 						break;
@@ -124,6 +125,11 @@ public class ChatClientSender {
 						oos = new ObjectOutputStream(os);
 						oos.writeObject(req);
 						oos.flush();
+						// wait for server response
+						is = s.getInputStream();
+						iis = new ObjectInputStream(is);
+						req = (ChatRequest)iis.readObject();
+						
 					} else {
 						// Public message
 						ChatMessage message = new ChatMessage(nickname, null, line);
@@ -132,6 +138,11 @@ public class ChatClientSender {
 						oos = new ObjectOutputStream(os);
 						oos.writeObject(req);
 						oos.flush();
+						// wait for server response 
+						is = s.getInputStream();
+						iis = new ObjectInputStream(is);
+						req = (ChatRequest)iis.readObject();
+						System.out.println(req.getResponseCode());
 					}
 				}
 			}

@@ -108,18 +108,30 @@ public class ChatThread implements Runnable {
 					ChatServer.userList.remove(nick);
 					exit = true;
 					System.out.println("User "+nick+ " disconnected");
+					os = this.client.getOutputStream();
+					oos = new ObjectOutputStream(os);
+					oos.writeObject(new ChatRequest(0));
+					oos.flush();
 					break;
 					
 				case "publicmessage":
 					ChatMessage msg = (ChatMessage)request.getParam();
 					ChatServer.room.addMessage(msg);
 					System.out.println(ChatServer.room.getLastMessage().print());
+					os = this.client.getOutputStream();
+					oos = new ObjectOutputStream(os);
+					oos.writeObject(new ChatRequest(0));
+					oos.flush();
 					break;
 					
 				case "privatemessage":
 					ChatMessage msgpriv = (ChatMessage)request.getParam();
 					ChatServer.room.addMessage(msgpriv);
 					System.out.println(ChatServer.room.getLastMessage().print());
+					os = this.client.getOutputStream();
+					oos = new ObjectOutputStream(os);
+					oos.writeObject(new ChatRequest(0));
+					oos.flush();
 					break;
 					
 				case "getmessagesfrom":
