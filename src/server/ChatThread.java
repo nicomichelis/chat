@@ -14,6 +14,7 @@ public class ChatThread implements Runnable {
 	private Socket client = null;
 	private boolean exit = false;
 	private String nick  = null;
+	private boolean clientStatus; // true: sender, false: receiver
 	
 	public ChatThread (Socket client){
 		this.client = client;
@@ -21,21 +22,17 @@ public class ChatThread implements Runnable {
 	
 	@Override
 	public void run() {
-		
-		try{
-			InputStream is = null;
-			ObjectInputStream ois = null;
-			OutputStream os = null;
-			ObjectOutputStream oos = null;
+		InputStream is = null;
+		ObjectInputStream ois = null;
+		OutputStream os = null;
+		ObjectOutputStream oos = null;
+		try {
 			while (!exit) {
 				// Input channel: Client to Server
 				is = this.client.getInputStream();
 				ois = new ObjectInputStream(is);
-				
 				// Read object from input stream
 				ChatRequest request = (ChatRequest) ois.readObject();
-				
-				
 				String nickname;
 				ChatRequest response;
 				switch (request.getRequestCode()) {
@@ -54,6 +51,7 @@ public class ChatThread implements Runnable {
 							user.setReceiver(true);
 							ChatServer.userList.put(nickname, user);
 							response = new ChatRequest(0);
+							clientStatus = false;
 						}
 					} else {
 						// User is not present
@@ -63,12 +61,8 @@ public class ChatThread implements Runnable {
 						ChatServer.userList.put(nickname, user);
 						response = new ChatRequest(0);
 						System.out.println("User "+ nick + " receiver connected. Waiting for sender...");
+						clientStatus = false;
 					}
-					// Output channel: Server to Client
-					os = this.client.getOutputStream();
-					oos = new ObjectOutputStream(os);
-					oos.writeObject(response);
-					oos.flush();
 					break;
 					
 				case "loginsender":
@@ -86,6 +80,7 @@ public class ChatThread implements Runnable {
 							user.setSender(true);
 							ChatServer.userList.put(nickname, user);
 							response = new ChatRequest(0);
+							clientStatus = true;
 						}
 					} else {
 						// User is not present
@@ -95,79 +90,85 @@ public class ChatThread implements Runnable {
 						ChatServer.userList.put(nickname, user);
 						response = new ChatRequest(0);
 						System.out.println("User "+ nick + " sender connected. Waiting for receiver...");
+						clientStatus = true;
 					}
-					// Output channel: Server to Client
-					os = this.client.getOutputStream();
-					oos = new ObjectOutputStream(os);
-					oos.writeObject(response);
-					oos.flush();
 					break;
 					
 				case "quit":
-					// Remove user from list
-					ChatServer.userList.remove(nick);
+					if (ChatServer.userList.get(nick).isConnected()) {
+						if (clientStatus) { 
+							ChatServer.userList.get(nick).setSender(false);
+							System.out.println("User "+nick+ " sender disconnected");
+						} else {
+							ChatServer.userList.get(nick).setReceiver(false);
+							System.out.println("User "+nick+ " receiver disconnected");
+						}
+					} else {
+						// Remove user from list
+						ChatServer.userList.remove(nick);
+						System.out.println("User "+nick+ " disconnected");
+					}
 					exit = true;
-					System.out.println("User "+nick+ " disconnected");
-					os = this.client.getOutputStream();
-					oos = new ObjectOutputStream(os);
-					oos.writeObject(new ChatRequest(0));
-					oos.flush();
+					response = new ChatRequest(-1, "Bye");
 					break;
-					
 				case "publicmessage":
+					if (!ChatServer.userList.get(nick).isConnected()) {
+						String client = clientStatus ? "receiver":"sender";
+						response = new ChatRequest(-1, client + " not connected");
+						break;
+					}
 					ChatMessage msg = (ChatMessage)request.getParam();
 					ChatServer.room.addMessage(msg);
 					System.out.println(ChatServer.room.getLastMessage().print());
-					os = this.client.getOutputStream();
-					oos = new ObjectOutputStream(os);
-					oos.writeObject(new ChatRequest(0));
-					oos.flush();
+					response = new ChatRequest(0);
 					break;
 					
 				case "privatemessage":
+					if (!ChatServer.userList.get(nick).isConnected()) {
+						String client = clientStatus ? "receiver":"sender";
+						response = new ChatRequest(0, client + " not connected");
+						break;
+					}
 					ChatMessage msgpriv = (ChatMessage)request.getParam();
 					ChatServer.room.addMessage(msgpriv);
 					System.out.println(ChatServer.room.getLastMessage().print());
-					os = this.client.getOutputStream();
-					oos = new ObjectOutputStream(os);
-					oos.writeObject(new ChatRequest(0));
-					oos.flush();
+					response = new ChatRequest(0);
 					break;
 					
 				case "getmessagesfrom":
+					if (!ChatServer.userList.get(nick).getReceiver()) {
+						// wait for sender connection
+						response = new ChatRequest(0);
+						break;
+					}
 					int from = (int) request.getParam();
 					ArrayList<ChatMessage> list = (ArrayList<ChatMessage>) ChatServer.room.listMessages(nick, from);
 					response = new ChatRequest(0,list);
-					// Output channel: Server to Client
-					os = this.client.getOutputStream();
-					oos = new ObjectOutputStream(os);
-					oos.writeObject(response);
-					oos.flush();
 					break;
 					
 				case "list":
+					if (!ChatServer.userList.get(nick).isConnected()) {
+						String client = clientStatus ? "receiver":"sender";
+						response = new ChatRequest(-1, client + " not connected");
+						break;
+					}
 					ArrayList<String> userlist = new ArrayList<String>();
 					for ( ChatUser user : ChatServer.userList.values() ) {
 					    if (user.isConnected()) {
 					    	userlist.add(user.getNickname());
 					    }
 					}
-					response = new ChatRequest(0,userlist);
-					// Output channel: Server to Client
-					os = this.client.getOutputStream();
-					oos = new ObjectOutputStream(os);
-					oos.writeObject(response);
-					oos.flush();
+					response = new ChatRequest("list",null,userlist,0);
 					break;
 					
 				default:
 					response = new ChatRequest(-1, "Generic error");
-					// Output channel: Server to Client
-					os = this.client.getOutputStream();
-					oos = new ObjectOutputStream(os);
-					oos.writeObject(response);
-					oos.flush();
 				}
+				// Output channel: Server to Client
+				os = this.client.getOutputStream();
+				oos = new ObjectOutputStream(os);
+				oos.writeObject(response);
+				oos.flush();
 			}
 		}catch(Exception e ){
 			ChatServer.userList.remove(nick);

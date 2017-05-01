@@ -15,7 +15,6 @@ import structs.ChatRequest;
 public class ChatClientSender {
 
 	private static int port = 4000;
-	private static ChatRequest response;
 	private static String nickname;
 	
 	public static void main(String[] args) {
@@ -37,7 +36,7 @@ public class ChatClientSender {
 			// Login part
 			do {
 				// Request for a nick
-				System.out.println("Insert Nickname: ");
+				System.out.print("Insert Nickname: ");
 				// Keyboard Input
 				InputStreamReader reader = new InputStreamReader(System.in);
 				BufferedReader buffer = new BufferedReader(reader);	
@@ -46,7 +45,6 @@ public class ChatClientSender {
 				// Write to server
 				os = s.getOutputStream();			
 				oos = new ObjectOutputStream(os);
-				// Request login
 				req = new ChatRequest("loginsender", nickname);
 				oos.writeObject(req);
 				oos.flush();
@@ -56,17 +54,17 @@ public class ChatClientSender {
 				iis = new ObjectInputStream(is);
 				
 				// Server response
-				response = (ChatRequest)iis.readObject();
-				if (response.getResponseCode() == -1)
-					System.out.println(response.getError());
+				req = (ChatRequest)iis.readObject();
+				if (req.getResponseCode() == -1)
+					System.out.println(req.getError());
 				
-			} while(response.getResponseCode() != 0);
+			} while(req.getResponseCode() != 0);
 			System.out.println("Connected to the Server");
 			
 			// Send requests to server
 			while (!quit) {
-				System.out.println("Comando: ");
-				// Legge da tastiera
+				System.out.print("Comando: ");
+				// Read input from keyboard
 				InputStreamReader reader = new InputStreamReader(System.in);
 				BufferedReader buffer = new BufferedReader(reader);	
 				String line = buffer.readLine();
@@ -76,73 +74,48 @@ public class ChatClientSender {
 					switch (line.split(" ", 2)[0]) { // taking only the first word
 					case "quit":
 						req = new ChatRequest("quit");
-						os = s.getOutputStream();			
-						oos = new ObjectOutputStream(os);
-						oos.writeObject(req);
-						oos.flush();
-						System.out.println("Closing...");
-						is = s.getInputStream();
-						iis = new ObjectInputStream(is);
-						req = (ChatRequest)iis.readObject();
-						// Quit anyway
 						quit=true;
 						break;
 					case "list":
-						os = s.getOutputStream();			
-						oos = new ObjectOutputStream(os);
 						req = new ChatRequest("list");
-						oos.writeObject(req);
-						oos.flush();
-						is = s.getInputStream();
-						iis = new ObjectInputStream(is);
-						req = (ChatRequest)iis.readObject();
-						if (req.getResponseCode()!=0) {
-							System.out.println(req.getError());
-						} else {
-							if (req.getResponseCode()==0) {
-								System.out.println("Active user list: ");
-								@SuppressWarnings("unchecked")
-								ArrayList<String> userlist = (ArrayList<String>) req.getParam();
-								for (String username:userlist) {
-									System.out.println("- "+username);
-								}
-							} else {
-								System.out.println(req.getError());
-							}
-						}
 						break;
 					default:
 						System.out.println("Command not recognized");	
 					}
 				} else {
 					if (line.startsWith("@")) {
-						// Private message to someone
-						// the first thing after the @ is the nickname of the receiver
+						// Private message to someone, the first thing after the @ is the nickname of the receiver
 						line = line.substring(1); // remove the @
+						// TODO: check if message is empty
 						ChatMessage message = new ChatMessage(nickname, line.split(" ", 2)[0], line.split(" ", 2)[1]);
 						req = new ChatRequest("privatemessage", message);
-						os = s.getOutputStream();			
-						oos = new ObjectOutputStream(os);
-						oos.writeObject(req);
-						oos.flush();
-						// wait for server response
-						is = s.getInputStream();
-						iis = new ObjectInputStream(is);
-						req = (ChatRequest)iis.readObject();
-						
 					} else {
 						// Public message
 						ChatMessage message = new ChatMessage(nickname, null, line);
 						req = new ChatRequest("publicmessage", message);
-						os = s.getOutputStream();			
-						oos = new ObjectOutputStream(os);
-						oos.writeObject(req);
-						oos.flush();
-						// wait for server response 
-						is = s.getInputStream();
-						iis = new ObjectInputStream(is);
-						req = (ChatRequest)iis.readObject();
-						System.out.println(req.getResponseCode());
+					}
+				}
+				// Send request to server
+				os = s.getOutputStream();			
+				oos = new ObjectOutputStream(os);
+				oos.writeObject(req);
+				oos.flush();
+				// Get response from the server
+				is = s.getInputStream();
+				iis = new ObjectInputStream(is);
+				req = (ChatRequest)iis.readObject();
+				// Handle response
+				if (req.getResponseCode()!=0) {
+					System.out.println("Server says: "+req.getError());
+				} else {
+					// Check if the response is the user list
+					if (req.getRequestCode().equals("list")) {
+						System.out.println("Active user list: ");
+						@SuppressWarnings("unchecked")
+						ArrayList<String> userlist = (ArrayList<String>) req.getParam();
+						for (String username:userlist) {
+							System.out.println("- "+username);
+						}
 					}
 				}
 			}

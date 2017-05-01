@@ -18,6 +18,12 @@ public class ChatRequest implements Serializable {
 		this.param = null;
 		this.responseCode = 0;
 	}
+	public ChatRequest(String req, String err, Object par, int res) {
+		this.requestCode = req;
+		this.error = err;
+		this.param = par;
+		this.responseCode = res;
+	}
 	
 	// To use from client to server
 	public ChatRequest(String req) {

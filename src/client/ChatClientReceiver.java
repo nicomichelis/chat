@@ -15,58 +15,59 @@ import structs.ChatRequest;
 public class ChatClientReceiver {
 
 	private static int port = 4000;
-	private static ChatRequest response;
+	private static String nickname;
 	
 	public static void main(String[] args) {
+		ChatRequest req;
 		int indexMessage = -1;
 		boolean quit = false;
 		String ipaddr;
-		if (args.length==0) ipaddr="127.0.0.1";
-			else ipaddr=args[0];
-		InetSocketAddress addr  = new InetSocketAddress(ipaddr, port);
 		
-		@SuppressWarnings("resource")
+		ipaddr = (args.length==0) ? "127.0.0.1" : args[0];
+		InetSocketAddress addr  = new InetSocketAddress(ipaddr, port);
 		Socket s = new Socket();
 		
+		// Output channel: Client to Server
+		OutputStream os = null;		
+		ObjectOutputStream oos = null;
+		// Input channel: Server to Client
+		InputStream is = null;
+		ObjectInputStream iis = null;
 		try {
 			s.connect(addr);
-			// Output channel: Client to Server
-			OutputStream os = s.getOutputStream();			
-			ObjectOutputStream oos = new ObjectOutputStream(os);
-			// Input channel: Server to Client
-			InputStream is = null;
-			ObjectInputStream iis = null;
+			// Login part
 			do {
 				// Request for a nick
-				System.out.println("Insert Nickname: ");
+				System.out.print("Insert Nickname: ");
 				// Keyboard Input
 				InputStreamReader reader = new InputStreamReader(System.in);
 				BufferedReader buffer = new BufferedReader(reader);	
-				String line = buffer.readLine();
+				nickname = buffer.readLine();
 				
-				// Request login
-				ChatRequest req = new ChatRequest("loginreceiver", line);
+				// Write to server
+				os = s.getOutputStream();			
+				oos = new ObjectOutputStream(os);
+				req = new ChatRequest("loginreceiver", nickname);
 				oos.writeObject(req);
 				oos.flush();
 				
+				// Wait for Server response
 				is = s.getInputStream();
 				iis = new ObjectInputStream(is);
 				
 				// Server response
-				response = (ChatRequest)iis.readObject();
-				if (response.getResponseCode() == -1)
-					System.out.println(response.getError());
+				req = (ChatRequest)iis.readObject();
+				if (req.getResponseCode() == -1)
+					System.out.println(req.getError());
 				
-			} while(response.getResponseCode() != 0);
+			} while(req.getResponseCode() != 0);
 			System.out.println("Connected to the Server");
 			
 			while (!quit) {
-				Thread.sleep(1000);
 				// Check for new messages
-				// Output channel: Client to Server
 				os = s.getOutputStream();			
 				oos = new ObjectOutputStream(os);
-				ChatRequest req = new ChatRequest("getmessagesfrom", indexMessage);
+				req = new ChatRequest("getmessagesfrom", indexMessage);
 				oos.writeObject(req);
 				oos.flush();
 
@@ -74,10 +75,12 @@ public class ChatClientReceiver {
 				is = s.getInputStream();
 				iis = new ObjectInputStream(is);
 				// Server response
-				response = (ChatRequest)iis.readObject();
-				if (response.getResponseCode()==0) {
+				req = (ChatRequest)iis.readObject();
+				
+				if (req.getResponseCode()==0) {
+					if (req.getParam()!=null) {
 						@SuppressWarnings("unchecked")
-						ArrayList<ChatMessage> retMessages = (ArrayList<ChatMessage>) response.getParam();
+						ArrayList<ChatMessage> retMessages = (ArrayList<ChatMessage>) req.getParam();
 						for (ChatMessage msg:retMessages) {
 							indexMessage = msg.getId();
 							if (msg.getReceiver()!= null) 
@@ -85,8 +88,9 @@ public class ChatClientReceiver {
 							else
 								System.out.println(msg.print());
 						}
+					}
 				} else {
-					System.out.println((String)response.getParam());
+					System.out.println((String)req.getParam());
 					os = s.getOutputStream();			
 					oos = new ObjectOutputStream(os);
 					oos.writeObject(new ChatRequest("quit"));
@@ -96,15 +100,16 @@ public class ChatClientReceiver {
 					is = s.getInputStream();
 					iis = new ObjectInputStream(is);
 					// Server response
-					response = (ChatRequest)iis.readObject();
-					if (response.getResponseCode()!=0) {
-						System.out.println(response.getError());
+					req = (ChatRequest)iis.readObject();
+					if (req.getResponseCode()!=0) {
+						System.out.println(req.getError());
 					}
-					System.out.println("Closing...");
 					// Quit anyway
 					quit=true;
 				}
+				Thread.sleep(1000);
 			}
+			s.close();
 		}catch(Exception e){
 			e.printStackTrace();
 		}	
