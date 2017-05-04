@@ -143,6 +143,12 @@ public class ChatThread implements Runnable {
 						break;
 					}
 					ChatMessage msgpriv = (ChatMessage)request.getParam();
+					// Check if receiver is connected before insert
+					ChatUser u = ChatServer.userList.get(msgpriv.getReceiver());
+					if (u == null || !u.isConnected()  ) {
+						response = new ChatRequest(-1, "the receiver of the message is not connected to the server");
+						break;
+					}
 					ChatServer.room.addMessage(msgpriv);
 					System.out.println(ChatServer.room.getLastMessage().print());
 					response = new ChatRequest(0);
@@ -195,9 +201,21 @@ public class ChatThread implements Runnable {
 				oos.flush();
 			}
 		}catch(Exception e ){
-			ChatServer.userList.remove(nick);
-			System.out.println("ChatTread Exception:" + e.getMessage());
-			e.printStackTrace();
+			if (clientStatus) {
+				if (ChatServer.userList.get(nick).isConnected())
+					ChatServer.userList.get(nick).setSender(false);
+				else
+					ChatServer.userList.remove(nick);
+				System.out.println("Sender disconnected");
+			} else {
+				if (ChatServer.userList.get(nick).isConnected())
+					ChatServer.userList.get(nick).setReceiver(false);
+				else
+					ChatServer.userList.remove(nick);
+				System.out.println("Receiver disconnected");
+			}
+			// System.out.println("ChatTread Exception:" + e.getMessage());
+			// e.printStackTrace();
 		}
 
 	}

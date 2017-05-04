@@ -87,7 +87,7 @@ public class ChatClientSender {
 						req = new ChatRequest("list");
 						break;
 					default:
-						System.out.println("Command not recognized");
+						System.out.println("Error: command not recognized");
 						continue;
 					}
 				} else {
@@ -95,6 +95,10 @@ public class ChatClientSender {
 						// Private message to someone, the first thing after the @ is the nickname of the receiver
 						line = line.substring(1); // remove the @
 						// TODO: check if message is empty
+						if (line.split(" ", 2).length < 2) {
+							System.out.println("Error: empty message");
+							continue;
+						}
 						ChatMessage message = new ChatMessage(nickname, line.split(" ", 2)[0], line.split(" ", 2)[1]);
 						req = new ChatRequest("privatemessage", message);
 					} else {
@@ -114,7 +118,7 @@ public class ChatClientSender {
 				req = (ChatRequest)iis.readObject();
 				// Handle response
 				if (req.getResponseCode()!=0) {
-					System.out.println("Server says: "+req.getError());
+					System.out.println("Server: "+req.getError());
 				} else {
 					// Check if the response is the user list
 					if (req.getRequestCode().equals("list")) {
